@@ -5,6 +5,50 @@ const router = express.Router();
 
 // CRUD
 
+// Search
+// Route for searching books by title, author, or publishYear
+router.get('/search', async (request, response) => {
+  try {
+    const {title, author, publishYear} = request.query
+    let searchCriteria = {}
+
+    if(title) {
+      searchCriteria.title = new RegExp(title, 'i')
+    }
+    if(author) {
+      searchCriteria.author = new RegExp(author, 'i')
+    }
+    if(publishYear) {
+      const publishYearAsNumber = Number(publishYear)
+      
+      if(!isNaN(publishYearAsNumber)) {
+        searchCriteria.publishYear = publishYearAsNumber
+      }
+      else {
+        return response.status(400).send({
+          message: 'publishYear must be a number'
+        })
+      }
+    }
+    if(!title && !author && !publishYear) {
+      return response.status(400).send({
+        message: 'Please provide at least one parameter (title, author, publishYear'
+      })
+    }
+
+    const books = await Book.find(searchCriteria)
+    
+    return response.status(200).json({
+      count: books.length,
+      data: books
+    })
+  }
+  catch (error) {
+    console.log(error.message)
+    response.status(500).send({ message: error.message })
+  }
+})
+
 // Create
 // Route for Save a new Book
 router.post('/', async (request, response) => {
@@ -28,7 +72,7 @@ router.post('/', async (request, response) => {
     const book = await Book.create(newBook);
 
     return response.status(201).send(book);
-  } 
+  }
   catch (error) {
     console.log(error.message);
     response.status(500).send({ message: error.message })
@@ -59,7 +103,7 @@ router.get('/:id', async (request, response) => {
 
     const book = await Book.findById(id)
 
-    if(!book) {
+    if (!book) {
       return response.status(404).send({ message: "Book not found" });
     }
 
@@ -92,7 +136,7 @@ router.put('/:id', async (request, response) => {
       return response.status(404).json({ message: 'Book not found' });
     }
 
-    return response.status(200).send({ message: 'Book updated successfully '});
+    return response.status(200).send({ message: 'Book updated successfully ' });
 
   } catch (error) {
     console.log(error)
